@@ -3,6 +3,8 @@
 #include <iostream>
 #include "Matrix.h"
 
+const static long double EPSILON = 1e-15;
+
 class MatrixOperations {
 public:
 	static Matrix add(const Matrix& a, const Matrix& b) {
@@ -46,8 +48,10 @@ public:
 		for (size_t i = 0; i < a.getNumberOfRows(); ++i) {
 			for (size_t j = 0; j < b.getNumberOfColumns(); ++j) {
 				long double element = multiplicationElement(a, b, i, j);
-				multiplicationResult.set(i, j, element);
-
+				if(std::abs(element - 0) > EPSILON)
+					multiplicationResult.set(i, j, element);
+				else
+					multiplicationResult.set(i, j, 0);
 			}
 		}
 		return multiplicationResult;

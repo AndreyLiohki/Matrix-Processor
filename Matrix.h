@@ -180,41 +180,88 @@ public:
 
 		return tr;
 	}
+	
+	std::pair<std::vector<std::vector<long double>>, std::vector<std::vector<long double>>> hausholderAlgo() {
+		std::vector<std::vector<long double>> A = matrix;
+		std::vector<std::vector<long double>> Q(A.size(), std::vector<long double>(A.size(), 0));
+		size_t m = A.size();
+		size_t n = A[0].size();
 
-	//std::vector<std::vector<long double>> orthogonalMatrix() const {
-	//	std::vector<std::vector<long double>> result(rows, std::vector<long double>(columns));
+		for (size_t i = 0; i < m; ++i) {
+			Q[i][i] = 1;
+		}
 
-	//	for (size_t i = 0; i < columns; ++i) {
-	//		std::vector<long double> v (rows, 0);
-	//		for (size_t j = 0; j < rows; ++j) {
-	//			v[j] = matrix[j][i];
-	//		}
-	//		for (size_t j = 0; j < i; ++j) {
-	//			std::vector<long double> proj = vectorProjection(result[j], v);
-	//			v = vectorSubstraction(v, proj);
-	//		}
-	//		result[i] = normalization(v);
-	//	}
-	//	return result;
+		for (size_t k = 0; k < std::min(m, n)-1; ++k) {
+			std::vector<long double> x(m - k);
+			for (size_t i = k; i < m; ++i) {
+				x[i - k] = A[i][k];
+			}
 
-	//}
+			std::vector<long double> v = hausholderVector(x);
+
+			std::vector<std::vector<long double>> Hk(m, std::vector<long double>(m, 0));
+			for (size_t i = 0; i < m; ++i) {
+				Hk[i][i] = 1;
+			}
+
+			for (size_t i = 0; i < m - k; ++i) {
+				for (size_t j = 0; j < m - k; ++j) {
+					Hk[k + i][k + j] -= 2.0 * v[i] * v[j];
+				}
+			}
+
+			Q = stlMatrixMultiplication(Q, Hk);
+
+			A = stlMatrixMultiplication(Hk, A);
+		}
+
+		for (size_t i = 0; i < Q.size(); ++i) {
+			for (size_t j = 0; j < Q[0].size(); ++j) {
+				if (std::abs(Q[i][j]) < EPSILON) {
+					Q[i][j] = 0;
+				}
+			}
+		}
+
+		for (size_t i = 0; i < A.size(); ++i) {
+			for (size_t j = 0; j < A[0].size(); ++j) {
+				if (std::abs(A[i][j]) < EPSILON) {
+					A[i][j] = 0;
+				}
+			}
+		}
+
+		return {A, Q};
+	}
+
+
 
 private:
-	const long double EPSILON = 1e-12;
+	const long double EPSILON = 1e-15;
 
 	std::vector<std::vector<long double>> matrix;
 	size_t rows;
 	size_t columns;
 
+	long double sign(long double x) {
+		if (x > 0) {
+			return 1;
+		}
+		if (x < 0) {
+			return -1;
+		}
+		return 0;
+	}
+
 	long double scalarProduct(const std::vector<long double>& a, const std::vector<long double>& b) const{
-		double value = 0;
+		long double value = 0;
 		for (size_t i = 0; i < a.size(); ++i) {
 			value += a[i] * b[i];
 		}
 		return value;
 	}
 
-	std::vector<long double> vectorProjection(const std::vector<long double>& a, const std::vector<long double>& b) const{
+	std::vector<long double> vectorProjection(const std::vector<long double>& a, const std::vector<long double>& b) const {
 		long double coeff = scalarProduct(a, b) / scalarProduct(b, b);
 		std::vector<long double> projection(a.size());
 		for (size_t i = 0; i < a.size(); ++i) {
@@ -233,6 +280,9 @@ private:
 
 	std::vector<long double> normalization(const std::vector<long double>& a) const  {
 		long double norm = std::sqrt(scalarProduct(a, a));
+		if (norm < 1e-5) {
+			throw std::runtime_error("dependent vectors");
+		}
 		std::vector<long double> result(a.size(), 0);
 		for (size_t i = 0; i < a.size(); ++i) {
 			result[i] = a[i] / norm;
@@ -240,4 +290,69 @@ private:
 		return result;
 	}
 
+	std::vector<long double> hausholderVector(const std::vector<long double>& x) {
+		long double euclidianNorm = std::sqrt(scalarProduct(x, x));
+		std::vector<long double> result(x.size());
+
+		for (size_t i = 0; i < x.size(); ++i) {
+			if (i == 0)
+				result[i] = x[i] - sign(x[0]) * euclidianNorm;
+			else
+				result[i] = x[i];
+		}
+
+		long double norm = std::sqrt(scalarProduct(result, result));
+
+		if (norm < EPSILON) {
+
+			throw std::runtime_error("Degenerate vector : Householder transformation not possible.");
+		}
+		for (size_t i = 0; i < x.size(); ++i) {
+			result[i] /= norm;
+		}
+		return result;
+	}
+
+	std::vector<std::vector<long double>> hausholderMatrix(const std::vector<long double>& v, size_t size) {
+		std::vector<std::vector<long double>> result(size, std::vector<long double>(size, 0));
+		
+		for (size_t i = 0; i < size; ++i) {
+			result[i][i] = 1;
+		}
+
+		for (size_t i = 0; i < v.size(); ++i) {
+			for (size_t j = 0; j < v.size(); ++j) {
+				result[i][j] -= 2.0 * v[i] * v[j];
+			}
+		}
+
+		return result;
+	}
+
+	std::vector<std::vector<long double>> stlMatrixMultiplication(const std::vector<std::vector<long double>>& a, const std::vector<std::vector<long double>>& b) {
+		if (a[0].size() != b.size()) {
+			throw std::invalid_argument("wrong matrices sizes");
+		}
+		std::vector<std::vector<long double>> answer(a.size(), std::vector<long double>(b[0].size()));
+
+		for (size_t i = 0; i < a.size(); ++i) {
+			for (size_t j = 0; j < b.size(); ++j) {
+				long double element = multiplicationElement(a, b, i, j);
+				if (std::abs(element - 0) > EPSILON)
+					answer[i][j] = element;
+				else
+					answer[i][j] = 0;
+
+			}
+		}
+		return answer;
+	}
+
+	long double multiplicationElement(const std::vector<std::vector<long double>>& a, const std::vector<std::vector<long double>>& b, size_t row, size_t col) {
+		long double result = 0;
+		for (size_t i = 0; i < a[0].size(); ++i) {
+			result += a[row][i] * b[i][col];
+		}
+		return result;
+	}
 };

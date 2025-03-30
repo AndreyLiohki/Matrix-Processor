@@ -5,17 +5,28 @@
 
 int main() {
     std::vector<std::vector<long double>> matrix = {
-        {3, 2, 4, 4, 5},
-        {2, 4, 3, 1, 2},
-        {1, 1, 5, 6, 3},
-        {7, 4, 9, 8, 9},
-        {3, 5, 4, 8, 7}
+        {1,2,3},
+        {4,5,6},
+        {7,8,10},
+
     };
     
     Matrix matr(matrix);
-    std::pair<std::vector<std::vector<long double>>, std::vector<std::vector<long double>>> par = matr.luDecomposition();
+    std::cout << matr.determinant() << std::endl;
+    std::cout << matr.trace() << std::endl;
+    std::cout << matr.rank() << std::endl;
+
 
     MatrixOperations a;
-    Matrix matr1(a.multiplication(par.first, par.second));
-    matr1.printMatrix();
+    std::vector<std::vector<long double>> test = matr.hausholderAlgo();
+    Matrix create(test);
+    create.printMatrix();
+    std::cout << std::endl;
+    Matrix obj1 = a.multiplication(create.transposeMatrix(), create);
+    Matrix obj2 = a.multiplication(create, create.transposeMatrix());
+
+    obj1.printMatrix();
+    std::cout << std::endl;
+    obj2.printMatrix();
+
 }
