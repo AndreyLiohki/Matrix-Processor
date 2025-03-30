@@ -4,12 +4,13 @@
 #include "MatrixOperations.h"
 
 int main() {
-    std::vector<std::vector<long double>> matrix = {
-        {1,2,3},
-        {4,5,6},
-        {7,8,10},
+    std::vector<std::vector<long double>> matrix(7, std::vector<long double>(7));
 
-    };
+    for (int i = 0; i < 7; ++i) {
+        for (int j = 0; j < 7; ++j) {
+            matrix[i][j] = rand() % 9 + 1; 
+        }
+    }
     
     Matrix matr(matrix);
     std::cout << matr.determinant() << std::endl;
@@ -18,15 +19,23 @@ int main() {
 
 
     MatrixOperations a;
-    std::vector<std::vector<long double>> test = matr.hausholderAlgo();
-    Matrix create(test);
-    create.printMatrix();
+    std::vector<std::vector<long double>> test1 = matr.hausholderAlgo().first;
+    std::vector<std::vector<long double>> test2 = matr.hausholderAlgo().second;
+    Matrix A(test1);
+    Matrix Q(test2);
+    A.printMatrix();
     std::cout << std::endl;
-    Matrix obj1 = a.multiplication(create.transposeMatrix(), create);
-    Matrix obj2 = a.multiplication(create, create.transposeMatrix());
 
-    obj1.printMatrix();
+    Q.printMatrix();
     std::cout << std::endl;
-    obj2.printMatrix();
+
+    Matrix result(a.multiplication(Q, A));
+
+    result.printMatrix();
+    std::cout << std::endl;
+
+    Matrix isOrthogonal(a.multiplication(Q, Q.transposeMatrix()));
+    isOrthogonal.printMatrix();
+
 
 }
