@@ -4,13 +4,7 @@
 #include "MatrixOperations.h"
 
 int main() {
-    std::vector<std::vector<long double>> matrix(7, std::vector<long double>(7));
-
-    for (int i = 0; i < 7; ++i) {
-        for (int j = 0; j < 7; ++j) {
-            matrix[i][j] = rand() % 9 + 1; 
-        }
-    }
+    std::vector<std::vector<long double>> matrix = { {1,2}, {1,0} };
     
     Matrix matr(matrix);
     std::cout << matr.determinant() << std::endl;
@@ -36,6 +30,11 @@ int main() {
 
     Matrix isOrthogonal(a.multiplication(Q, Q.transposeMatrix()));
     isOrthogonal.printMatrix();
+
+    std::vector<std::vector<long double>> test3 = matr.getShurMatrix();
+    Matrix o(test3);
+    o.printMatrix();
+
 
 
 }

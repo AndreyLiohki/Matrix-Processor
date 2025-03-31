@@ -191,7 +191,7 @@ public:
 			Q[i][i] = 1;
 		}
 
-		for (size_t k = 0; k < std::min(m, n)-1; ++k) {
+		for (size_t k = 0; k < m-1; ++k) {
 			std::vector<long double> x(m - k);
 			for (size_t i = k; i < m; ++i) {
 				x[i - k] = A[i][k];
@@ -234,9 +234,94 @@ public:
 		return {A, Q};
 	}
 
+	std::pair<std::vector<std::vector<long double>>, std::vector<std::vector<long double>>> hausholderAlgo(std::vector<std::vector<long double>> Ak) {
+		std::vector<std::vector<long double>> A = Ak;
+		std::vector<std::vector<long double>> Q(Ak.size(), std::vector<long double>(Ak.size(), 0));
+		size_t m = Ak.size();
+		size_t n = Ak[0].size();
 
+		for (size_t i = 0; i < m; ++i) {
+			Q[i][i] = 1;
+		}
 
+		for (size_t k = 0; k < m-1; ++k) {
+			std::vector<long double> x(m - k);
+			for (size_t i = k; i < m; ++i) {
+				x[i - k] = Ak[i][k];
+			}
+
+			std::vector<long double> v = hausholderVector(x);
+
+			std::vector<std::vector<long double>> Hk(m, std::vector<long double>(m, 0));
+			for (size_t i = 0; i < m; ++i) {
+				Hk[i][i] = 1;
+			}
+
+			for (size_t i = 0; i < m - k; ++i) {
+				for (size_t j = 0; j < m - k; ++j) {
+					Hk[k + i][k + j] -= 2.0 * v[i] * v[j];
+				}
+			}
+
+			Q = stlMatrixMultiplication(Q, Hk);
+
+			A = stlMatrixMultiplication(Hk, Ak);
+		}
+
+		for (size_t i = 0; i < Q.size(); ++i) {
+			for (size_t j = 0; j < Q[0].size(); ++j) {
+				if (std::abs(Q[i][j]) < EPSILON) {
+					Q[i][j] = 0;
+				}
+			}
+		}
+
+		for (size_t i = 0; i < A.size(); ++i) {
+			for (size_t j = 0; j < A[0].size(); ++j) {
+				if (std::abs(A[i][j]) < EPSILON) {
+					A[i][j] = 0;
+				}
+			}
+		}
+
+		return { A, Q };
+	}
+
+	std::vector<std::vector<long double>> getShurMatrix() {
+		std::pair<std::vector<std::vector<long double>>, std::vector<std::vector<long double>>> kIteration = hausholderAlgo(matrix);
+		std::vector<std::vector<long double>> Ak = stlMatrixMultiplication(kIteration.first, kIteration.second);
+		std::vector<long double> currentEigenvalues(Ak.size());
+		std::vector<long double> previousEigenvalues(Ak.size());
+		for (size_t i = 0; i < Ak.size(); ++i) {
+			currentEigenvalues[i] = Ak[i][i];
+		}
+		for (size_t i = 0; i < 200; ++i) {
+			kIteration = hausholderAlgo(Ak);
+			Ak = stlMatrixMultiplication(kIteration.first, kIteration.second);
+			previousEigenvalues = currentEigenvalues;
+
+			
+			for (size_t i = 0; i < Ak.size(); ++i) {
+				currentEigenvalues[i] = Ak[i][i];
+			}
+			bool converged = true;
+			for (size_t i = 0; i < currentEigenvalues.size(); ++i) {
+				if (std::abs(currentEigenvalues[i] - previousEigenvalues[i]) > EPSILON) {
+					converged = false;
+					break; 
+				}
+			}
+
+			if (converged) {
+				std::cout << "Converged on " << i + 1 << " iteration." << std::endl;
+				break;
+			}
+				
+		}
+		return Ak;
+	}
 private:
+
 	const long double EPSILON = 1e-15;
 
 	std::vector<std::vector<long double>> matrix;
